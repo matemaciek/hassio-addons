@@ -1,0 +1,19 @@
+{
+  "name": "SHADE",
+  "version": "0.7",
+  "slug": "shade",
+  "description": "Simple Home Assistant Development Environment",
+  "startup": "before",
+  "boot": "auto",
+  "options": {
+    "github_user": "GITHUB_USER"
+  },
+  "schema": {
+    "github_user": "str"
+  },
+  "map": ["config"],
+  "ports": {
+    "8123/tcp": 8234,
+    "22/tcp": 222
+  }
+}
