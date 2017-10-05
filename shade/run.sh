@@ -1,28 +1,68 @@
 set -e
 CONFIG_PATH=/data/options.json
+KEYS_PATH=/data/host_keys
+
 if [ ! -d /data/home-assistant ]; then
-	echo "Fresh install detected, preparing environment."
-	echo "Copying /config..."
+	echo "[INFO] Fresh install detected, preparing environment."
+	echo "[INFO] Copying /config..."
 	cp -rv /config /data/config
-	echo "Setting default port, disabling ssl..."
+	echo "[INFO] Setting default port, disabling ssl..."
 	sed -i '/server_port/d' /data/config/configuration.yaml
 	sed -i '/ssl_key/d' /data/config/configuration.yaml
 	sed -i '/ssl_certificate/d' /data/config/configuration.yaml
-	echo "Cloning..."
+	echo "[INFO] Cloning..."
 	GITHUB_USER="$(jq --raw-output '.github_user' $CONFIG_PATH)"
-	echo "Will clone https://github.com/$GITHUB_USER/home-assistant.git"
+	echo "[DEBUG] Will clone https://github.com/$GITHUB_USER/home-assistant.git"
 	git clone https://github.com/$GITHUB_USER/home-assistant.git
-	echo "Creating venv..."
+	echo "[INFO] Creating venv..."
 	python3 -m venv venv
         source venv/bin/activate
 	cd home-assistant
 	git remote add upstream https://github.com/home-assistant/home-assistant.git
-	echo "Setting up..."
+	echo "[INFO] Setting up..."
 	script/setup
 else
-	echo "Already installed."
+	echo "[INFO] Already installed."
         source venv/bin/activate
 	cd home-assistant
 fi
-echo "Running hass..."
+
+AUTHORIZED_KEYS=$(jq --raw-output ".authorized_keys[]" $CONFIG_PATH)
+
+# Init defaults config
+sed -i s/#PermitRootLogin.*/PermitRootLogin\ yes/ /etc/ssh/sshd_config
+sed -i s/#LogLevel.*/LogLevel\ DEBUG/ /etc/ssh/sshd_config
+
+if [ ! -z "$AUTHORIZED_KEYS" ]; then
+    echo "[INFO] Setup authorized_keys"
+    mkdir -p ~/.ssh
+    while read -r line; do
+        echo "$line" >> ~/.ssh/authorized_keys
+    done <<< "$AUTHORIZED_KEYS"
+    chmod 600 ~/.ssh/authorized_keys
+    sed -i s/#PasswordAuthentication.*/PasswordAuthentication\ no/ /etc/ssh/sshd_config
+else
+    echo "[Error] You need to setup a login!"
+    exit 1
+fi
+# Generate host keys
+if [ ! -d "$KEYS_PATH" ]; then
+    echo "[INFO] Create host keys"
+    mkdir -p "$KEYS_PATH"
+    ssh-keygen -A
+    cp -fp /etc/ssh/ssh_host* "$KEYS_PATH/"
+else
+    echo "[INFO] Restore host keys"
+    cp -fp "$KEYS_PATH"/* /etc/ssh/
+fi
+
+# Persist shell history by redirecting .ash_history to /data
+touch /data/.ash_history
+chmod 600 /data/.ash_history
+ln -s -f /data/.ash_history /root/.ash_history
+
+# start server
+/usr/sbin/sshd
+
+echo "[INFO] Running hass..."
 hass -c /data/config

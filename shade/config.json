@@ -1,15 +1,17 @@
 {
   "name": "SHADE",
-  "version": "0.7",
+  "version": "0.11",
   "slug": "shade",
   "description": "Simple Home Assistant Development Environment",
   "startup": "before",
   "boot": "auto",
   "options": {
-    "github_user": "GITHUB_USER"
+    "github_user": "GITHUB_USER",
+    "authorized_keys": []
   },
   "schema": {
-    "github_user": "str"
+    "github_user": "str",
+    "authorized_keys": ["str"]
   },
   "map": ["config"],
   "ports": {
