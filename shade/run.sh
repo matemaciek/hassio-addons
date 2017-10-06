@@ -15,7 +15,7 @@ if [ ! -d /data/home-assistant ]; then
 	echo "[DEBUG] Will clone https://github.com/$GITHUB_USER/home-assistant.git"
 	git clone https://github.com/$GITHUB_USER/home-assistant.git
 	echo "[INFO] Creating venv..."
-	python3 -m venv venv
+	python3 -m venv --system-site-packages venv
         source venv/bin/activate
 	cd home-assistant
 	git remote add upstream https://github.com/home-assistant/home-assistant.git
