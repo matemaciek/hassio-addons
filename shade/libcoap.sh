@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+
 git clone --depth 1 --recursive -b dtls https://github.com/home-assistant/libcoap.git
 cd libcoap
 # Don't look at next 2 lines. These hacks are just too ugly.
