@@ -2,30 +2,11 @@ set -e
 CONFIG_PATH=/data/options.json
 KEYS_PATH=/data/host_keys
 
-if [ ! -d /data/home-assistant ]; then
-	echo "[INFO] Fresh install detected, preparing environment."
-	echo "[INFO] Copying /config..."
-	cp -rv /config /data/config
-	echo "[INFO] Setting default port, disabling ssl..."
-	sed -i '/server_port/d' /data/config/configuration.yaml
-	sed -i '/ssl_key/d' /data/config/configuration.yaml
-	sed -i '/ssl_certificate/d' /data/config/configuration.yaml
-	echo "[INFO] Cloning..."
-	GITHUB_USER="$(jq --raw-output '.github_user' $CONFIG_PATH)"
-	echo "[DEBUG] Will clone https://github.com/$GITHUB_USER/home-assistant.git"
-	git clone https://github.com/$GITHUB_USER/home-assistant.git
-	echo "[INFO] Creating venv..."
-	python3 -m venv --system-site-packages venv
-        source venv/bin/activate
-	cd home-assistant
-	git remote add upstream https://github.com/home-assistant/home-assistant.git
-	echo "[INFO] Setting up..."
-	script/setup
-else
-	echo "[INFO] Already installed."
-        source venv/bin/activate
-	cd home-assistant
-fi
+echo "[INFO] Creating screen session..."
+screen -dmS SHADE
+screen -S SHADE -x -X screen -t sshd ash
+screen -S SHADE -x -X screen -t hass ash
+screen -S SHADE -x -X screen -t venv ash
 
 AUTHORIZED_KEYS=$(jq --raw-output ".authorized_keys[]" $CONFIG_PATH)
 
@@ -62,7 +43,38 @@ chmod 600 /data/.ash_history
 ln -s -f /data/.ash_history /root/.ash_history
 
 # start server
-/usr/sbin/sshd
+
+screen -S SHADE -p sshd -X stuff $'exec /usr/sbin/sshd -D -e\n'
+
+if [ ! -d /data/home-assistant ]; then
+	echo "[INFO] Fresh install detected, preparing environment."
+	echo "[INFO] Copying /config..."
+	cp -rv /config /data/config
+	echo "[INFO] Setting default port, disabling ssl..."
+	sed -i '/server_port/d' /data/config/configuration.yaml
+	sed -i '/ssl_key/d' /data/config/configuration.yaml
+	sed -i '/ssl_certificate/d' /data/config/configuration.yaml
+	echo "[INFO] Cloning..."
+	GITHUB_USER="$(jq --raw-output '.github_user' $CONFIG_PATH)"
+	echo "[DEBUG] Will clone https://github.com/$GITHUB_USER/home-assistant.git"
+	git clone https://github.com/$GITHUB_USER/home-assistant.git
+	echo "[INFO] Creating venv..."
+	python3 -m venv --system-site-packages venv
+        source venv/bin/activate
+	cd home-assistant
+	git remote add upstream https://github.com/home-assistant/home-assistant.git
+	echo "[INFO] Setting up..."
+	script/setup
+else
+	echo "[INFO] Already installed."
+fi
 
 echo "[INFO] Running hass..."
-hass -c /data/config
+screen -S SHADE -p hass -X stuff $'source venv/bin/activate\ncd home-assistant\nhass -c /data/config\n'
+
+echo "[INFO] Prepering dev console..."
+screen -S SHADE -p venv -X stuff $'source venv/bin/activate\n'
+
+echo "[INFO] All set. For logs of hass ssh to this addon and exec screen -r"
+# prevent container from terminating
+tail -f /dev/null
