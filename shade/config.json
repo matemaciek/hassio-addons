@@ -1,6 +1,6 @@
 {
   "name": "SHADE",
-  "version": "0.14.6",
+  "version": "0.15.0",
   "slug": "shade",
   "description": "Simple Home Assistant Development Environment",
   "startup": "before",
@@ -17,5 +17,7 @@
   "ports": {
     "8123/tcp": 8234,
     "22/tcp": 222
-  }
+  },
+  "privileged": ["NET_ADMIN", "SYS_ADMIN", "SYS_RAWIO"],
+  "devices": ["/dev/mem:/dev/mem:rwm"]
 }
