@@ -48,9 +48,9 @@ screen -S SHADE -p sshd -X stuff $'exec /usr/sbin/sshd -D -e\n'
 
 if [ ! -d /data/home-assistant ]; then
 	echo "[INFO] Fresh install detected, preparing environment."
-	echo "[INFO] Copying /config/*.yaml ..."
-	mkdir /data/config
-	cp -v /config/*.yaml /data/config/
+	echo "[INFO] Copying config..."
+	find /config -type d -exec mkdir -p /data{} \;
+	find /config -type f ! -name home-assistant_v2.db -exec cp -v {} /data{} \;
 	echo "[INFO] Setting default port, disabling ssl..."
 	sed -i '/server_port/d' /data/config/configuration.yaml
 	sed -i '/ssl_key/d' /data/config/configuration.yaml

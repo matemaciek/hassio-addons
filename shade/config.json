@@ -1,6 +1,6 @@
 {
   "name": "SHADE",
-  "version": "0.15.1",
+  "version": "0.15.3",
   "slug": "shade",
   "description": "Simple Home Assistant Development Environment",
   "startup": "before",
